@@ -1,4 +1,4 @@
-package editor;
+package com.mateuszaksjonow;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -28,6 +28,9 @@ public class TextEditor extends JFrame {
     int index = 0;
     boolean regex = false;
 
+    /*
+     * Creates the user interface for the editor.
+     */
     public TextEditor() {
         setLayout(new BorderLayout());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -47,6 +50,9 @@ public class TextEditor extends JFrame {
         pack();
     }
 
+    /*
+     * Initializes elements of editor
+     */
     private void initNorthPanelAndSouthPanel() {
         JPanel northPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         northPanel.setBorder(new TitledBorder(new EtchedBorder(), ""));
@@ -75,7 +81,6 @@ public class TextEditor extends JFrame {
             initJFileChooserSavePath();
         });
         panel.add(saveButton, BorderLayout.NORTH);
-
     }
 
     private void initOpenButton(JPanel panel) {
@@ -131,7 +136,6 @@ public class TextEditor extends JFrame {
 
     private void initJFileChooserOpenPath() {
         JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-//        jfc.showOpenDialog(null);
         jfc.setVisible(true);
         jfc.setDialogTitle("Choose a directory to open your file: ");
         jfc.setName("FileChooser");
@@ -157,8 +161,6 @@ public class TextEditor extends JFrame {
     private void initJFileChooserSavePath() {
         JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
         jfc.setDialogTitle("Choose a directory to save your file: ");
-
-//        jfc.showSaveDialog(null);
         jfc.setVisible(true);
         jfc.setName("FileChooser");
         jfc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
@@ -272,6 +274,7 @@ public class TextEditor extends JFrame {
         menu.add(saveMenuItem);
     }
 
+    //searches for next and resets caret position if reaches end of the file
     private void searchNext() {
         if (regex) {
             searchWithRegex(true);
@@ -286,6 +289,7 @@ public class TextEditor extends JFrame {
         }
     }
 
+    //searches for next and resets caret position if reaches end of the file
     private void searchPrevious() {
         if (regex) {
             searchWithRegex(false);
@@ -300,6 +304,7 @@ public class TextEditor extends JFrame {
         }
     }
 
+    //searches for parts compatible with regex
     private void searchWithRegex(boolean isNext) {
         Pattern pattern = Pattern.compile(searchText);
         Matcher matcher = pattern.matcher(editorText);
@@ -316,8 +321,8 @@ public class TextEditor extends JFrame {
         editorArea.grabFocus();
     }
 
+    //return index of regex
     private int indexOfRegex(Pattern pattern, String editorText, int caretPosition, boolean isNext) {
-
         if (isNext) {
             Matcher matcher = pattern.matcher(editorText);
             return matcher.find(caretPosition) ? matcher.start() : -1;
@@ -341,6 +346,7 @@ public class TextEditor extends JFrame {
         editorArea.grabFocus();
     }
 
+    //reads images from URL
     private ImageIcon urlImageReader(String urlImage) {
         try {
             URL url = new URL(urlImage);
