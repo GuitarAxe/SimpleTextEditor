@@ -21,8 +21,8 @@ public class TextEditor extends JFrame {
     JTextArea editorArea = new JTextArea(30, 50);
     JTextField searchField = new JTextField(20);
 
-    String editorText = editorArea.getText();
-    String searchText = searchField.getText();
+    String editorText;
+    String searchText;
 
     int caretPosition = 0;
     int index = 0;
@@ -141,8 +141,7 @@ public class TextEditor extends JFrame {
         jfc.setName("FileChooser");
         jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
-        int returnValue = jfc.showOpenDialog(null);
-        if (returnValue == JFileChooser.APPROVE_OPTION) {
+        if (jfc.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             if (jfc.getSelectedFile().isFile()) {
                 try {
                     File file = jfc.getSelectedFile();
@@ -160,13 +159,12 @@ public class TextEditor extends JFrame {
 
     private void initJFileChooserSavePath() {
         JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-        jfc.setDialogTitle("Choose a directory to save your file: ");
         jfc.setVisible(true);
+        jfc.setDialogTitle("Choose a directory to save your file: ");
         jfc.setName("FileChooser");
         jfc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 
-        int returnValue = jfc.showSaveDialog(null);
-        if (returnValue == JFileChooser.APPROVE_OPTION) {
+        if (jfc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
             try (FileWriter fw = new FileWriter(jfc.getSelectedFile())) {
                 fw.write(editorArea.getText());
             } catch (Exception e) {
@@ -196,7 +194,6 @@ public class TextEditor extends JFrame {
         initLoadMenuItem(fileMenu);
         initExitMenuItem(fileMenu);
     }
-
 
     private void initSaveMenuItem(JMenu menu) {
         JMenuItem saveMenuItem = new JMenuItem("Save");
@@ -276,6 +273,9 @@ public class TextEditor extends JFrame {
 
     //searches for next and resets caret position if reaches end of the file
     private void searchNext() {
+        editorText = editorArea.getText();
+        searchText = searchField.getText();
+
         if (regex) {
             searchWithRegex(true);
         }else {
@@ -291,6 +291,9 @@ public class TextEditor extends JFrame {
 
     //searches for next and resets caret position if reaches end of the file
     private void searchPrevious() {
+        editorText = editorArea.getText();
+        searchText = searchField.getText();
+
         if (regex) {
             searchWithRegex(false);
         }else {
@@ -306,6 +309,9 @@ public class TextEditor extends JFrame {
 
     //searches for parts compatible with regex
     private void searchWithRegex(boolean isNext) {
+        editorText = editorArea.getText();
+        searchText = searchField.getText();
+
         Pattern pattern = Pattern.compile(searchText);
         Matcher matcher = pattern.matcher(editorText);
         index = indexOfRegex(Pattern.compile(searchText), editorText, caretPosition, isNext);
@@ -323,6 +329,9 @@ public class TextEditor extends JFrame {
 
     //return index of regex
     private int indexOfRegex(Pattern pattern, String editorText, int caretPosition, boolean isNext) {
+        editorText = editorArea.getText();
+        searchText = searchField.getText();
+
         if (isNext) {
             Matcher matcher = pattern.matcher(editorText);
             return matcher.find(caretPosition) ? matcher.start() : -1;
