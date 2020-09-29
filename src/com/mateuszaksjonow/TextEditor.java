@@ -156,6 +156,7 @@ public class TextEditor extends JFrame {
         }
         add(jfc, BorderLayout.CENTER);
     }
+    
 
     private void initJFileChooserSavePath() {
         JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
