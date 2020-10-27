@@ -2,17 +2,15 @@ package com.mateuszaksjonow;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.border.EtchedBorder;
-import javax.swing.border.TitledBorder;
+import javax.swing.border.*;
 import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.*;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,13 +18,17 @@ public class TextEditor extends JFrame {
 
     JTextArea editorArea = new JTextArea(30, 50);
     JTextField searchField = new JTextField(20);
+    JPanel centerPanel;
+    JPanel northPanel;
+    JMenuBar menuBar;
+    JMenu fileMenu;
+    JMenu searchMenu;
 
-    String editorText;
-    String searchText;
-
-    int caretPosition = 0;
-    int index = 0;
     boolean regex = false;
+
+    private List<Integer> matchStartIndices;
+    private List<Integer> matchEndIndices;
+    private int matchPosition;
 
     /*
      * Creates the user interface for the editor.
@@ -38,12 +40,7 @@ public class TextEditor extends JFrame {
         setTitle("Text Editor");
 
         initNorthPanelAndSouthPanel();
-
-        JMenuBar menuBar = new JMenuBar();
-        menuBar.setName("MenuFile");
-        setJMenuBar(menuBar);
-        initSaveOpenMenuBar(menuBar);
-        initSearchMenuBar(menuBar);
+        initMenuBar();
 
         setLocationRelativeTo(null);
         setVisible(true);
@@ -54,84 +51,92 @@ public class TextEditor extends JFrame {
      * Initializes elements of editor
      */
     private void initNorthPanelAndSouthPanel() {
-        JPanel northPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        northPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         northPanel.setBorder(new TitledBorder(new EtchedBorder(), ""));
 
-        initSaveButton(northPanel);
-        initOpenButton(northPanel);
-        initSearchField(northPanel);
-        initSearchButton(northPanel);
-        initPreviousButton(northPanel);
-        initNextButton(northPanel);
-        initRegexCheckbox(northPanel);
+        initSaveButton();
+        initOpenButton();
+        initSearchField();
+        initSearchButton();
+        initPreviousButton();
+        initNextButton();
+        initRegexCheckbox();
 
-        JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        centerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         centerPanel.setBorder(new TitledBorder(new EtchedBorder(), ""));
 
-        initTextAreaAndScrollPane(centerPanel);
+        initTextAreaAndScrollPane();
 
         add(northPanel, BorderLayout.NORTH);
         add(centerPanel, BorderLayout.CENTER);
     }
 
-    private void initSaveButton(JPanel panel) {
+    private void initMenuBar() {
+        menuBar = new JMenuBar();
+        menuBar.setName("MenuFile");
+        setJMenuBar(menuBar);
+        initSaveOpenMenuBar();
+        initSearchMenuBar();
+    }
+
+    private void initSaveButton() {
         JButton saveButton = new JButton(urlImageReader("https://cdn2.iconfinder.com/data/icons/atrous/512/floppy_disk_save-24.png"));
         saveButton.setName("SaveButton");
         saveButton.addActionListener(actionEvent -> {
             initJFileChooserSavePath();
         });
-        panel.add(saveButton, BorderLayout.NORTH);
+        northPanel.add(saveButton, BorderLayout.NORTH);
     }
 
-    private void initOpenButton(JPanel panel) {
+    private void initOpenButton() {
         JButton loadButton = new JButton(urlImageReader("https://cdn4.iconfinder.com/data/icons/common-toolbar/36/Open-24.png"));
         loadButton.setName("OpenButton");
         loadButton.addActionListener(actionEvent -> {
             initJFileChooserOpenPath();
         });
-        panel.add(loadButton, BorderLayout.NORTH);
+        northPanel.add(loadButton, BorderLayout.NORTH);
     }
 
-    private void initSearchField(JPanel panel) {
+    private void initSearchField() {
         searchField.setName("SearchField");
-        panel.add(searchField, BorderLayout.NORTH);
+        northPanel.add(searchField, BorderLayout.NORTH);
     }
 
-    private void initSearchButton(JPanel panel) {
+    private void initSearchButton() {
         JButton searchButton = new JButton(urlImageReader("https://cdn2.iconfinder.com/data/icons/atrous/512/search_magnifying_glass_find-24.png"));
         searchButton.setName("StartSearchButton");
         searchButton.addActionListener(actionEvent -> {
-            searchNext();
+            search();
         });
-        panel.add(searchButton, BorderLayout.NORTH);
+        northPanel.add(searchButton, BorderLayout.NORTH);
     }
 
-    private void initPreviousButton(JPanel panel) {
+    private void initPreviousButton() {
         JButton nextButton = new JButton(urlImageReader("https://cdn3.iconfinder.com/data/icons/music-player-controls-3/100/arrow_back_backwards_repeat_previous_blue-24.png"));
         nextButton.setName("PreviousMatchButton");
         nextButton.addActionListener(actionEvent -> {
-            searchPrevious();
+            decrementMatchAndMove();
         });
-        panel.add(nextButton, BorderLayout.NORTH);
+        northPanel.add(nextButton, BorderLayout.NORTH);
     }
 
-    private void initNextButton(JPanel panel) {
+    private void initNextButton() {
         JButton nextButton = new JButton(urlImageReader("https://cdn3.iconfinder.com/data/icons/music-player-controls-3/100/music_forward_front_next_arrow_blue-24.png"));
         nextButton.setName("NextMatchButton");
         nextButton.addActionListener(actionEvent -> {
-            searchNext();
+            incrementMatchAndMove();
         });
-        panel.add(nextButton, BorderLayout.NORTH);
+        northPanel.add(nextButton, BorderLayout.NORTH);
     }
 
-    private void initRegexCheckbox(JPanel panel) {
+    private void initRegexCheckbox() {
         JCheckBox checkBox = new JCheckBox();
         checkBox.setName("UseRegExCheckbox");
         checkBox.setText("Use regex");
         checkBox.addActionListener(actionEvent -> {
             regex = !regex;
         });
-        panel.add(checkBox, BorderLayout.NORTH);
+        northPanel.add(checkBox, BorderLayout.NORTH);
     }
 
     private void initJFileChooserOpenPath() {
@@ -156,7 +161,7 @@ public class TextEditor extends JFrame {
         }
         add(jfc, BorderLayout.CENTER);
     }
-    
+
 
     private void initJFileChooserSavePath() {
         JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
@@ -176,183 +181,140 @@ public class TextEditor extends JFrame {
     }
 
 
-    private void initTextAreaAndScrollPane(JPanel panel) {
+    private void initTextAreaAndScrollPane() {
         editorArea.setName("TextArea");
-        panel.add(editorArea, BorderLayout.CENTER);
+        centerPanel.add(editorArea, BorderLayout.CENTER);
 
         JScrollPane scroll = new JScrollPane(editorArea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         scroll.setName("ScrollPane");
-        panel.add(scroll);
+        centerPanel.add(scroll);
     }
 
-    private void initSaveOpenMenuBar(JMenuBar menuBar) {
-        JMenu fileMenu = new JMenu("File");
+    private void initSaveOpenMenuBar() {
+        fileMenu = new JMenu("File");
         fileMenu.setName("MenuFile");
         fileMenu.setMnemonic(KeyEvent.VK_F);
         menuBar.add(fileMenu);
 
-        initSaveMenuItem(fileMenu);
-        initLoadMenuItem(fileMenu);
-        initExitMenuItem(fileMenu);
+        initSaveMenuItem();
+        initLoadMenuItem();
+        initExitMenuItem();
     }
 
-    private void initSaveMenuItem(JMenu menu) {
+    private void initSaveMenuItem() {
         JMenuItem saveMenuItem = new JMenuItem("Save");
         saveMenuItem.setName("MenuSave");
         saveMenuItem.addActionListener(actionEvent -> {
             initJFileChooserSavePath();
         });
-        menu.add(saveMenuItem);
+        fileMenu.add(saveMenuItem);
     }
 
-    private void initLoadMenuItem(JMenu menu) {
+    private void initLoadMenuItem() {
         JMenuItem loadMenuItem = new JMenuItem("Load");
         loadMenuItem.setName("MenuOpen");
         loadMenuItem.addActionListener(actionEvent -> {
             initJFileChooserOpenPath();
         });
-        menu.add(loadMenuItem);
+        fileMenu.add(loadMenuItem);
     }
 
-    private void initExitMenuItem(JMenu menu) {
+    private void initExitMenuItem() {
         JMenuItem exitMenuItem = new JMenuItem("Exit");
         exitMenuItem.setName("MenuExit");
         exitMenuItem.addActionListener(actionEvent -> {
             System.exit(0);
         });
-        menu.addSeparator();
-        menu.add(exitMenuItem);
+        fileMenu.addSeparator();
+        fileMenu.add(exitMenuItem);
     }
 
-    private void initSearchMenuBar(JMenuBar menuBar) {
-        JMenu fileMenu = new JMenu("Search");
-        fileMenu.setName("MenuSearch");
-        fileMenu.setMnemonic(KeyEvent.VK_F);
-        menuBar.add(fileMenu);
+    private void initSearchMenuBar() {
+        searchMenu = new JMenu("Search");
+        searchMenu.setName("MenuSearch");
+        searchMenu.setMnemonic(KeyEvent.VK_F);
+        menuBar.add(searchMenu);
 
-        initStartSearchItem(fileMenu);
-        initNextMatchItem(fileMenu);
-        initPreviousMatchItem(fileMenu);
-        initUseRegularExpressionsItem(fileMenu);
+        initStartSearchItem();
+        initNextMatchItem();
+        initPreviousMatchItem();
+        initUseRegularExpressionsItem();
     }
 
-    private void initStartSearchItem(JMenu menu) {
+    private void initStartSearchItem() {
         JMenuItem saveMenuItem = new JMenuItem("Start Search");
         saveMenuItem.setName("MenuStartSearch");
         saveMenuItem.addActionListener(actionEvent -> {
-            searchNext();
+            search();
         });
-        menu.add(saveMenuItem);
+        searchMenu.add(saveMenuItem);
     }
 
-    private void initPreviousMatchItem(JMenu menu) {
+    private void initPreviousMatchItem() {
         JMenuItem saveMenuItem = new JMenuItem("Previous Match");
         saveMenuItem.setName("MenuPreviousMatch");
         saveMenuItem.addActionListener(actionEvent -> {
-            searchPrevious();
+            decrementMatchAndMove();
         });
-        menu.add(saveMenuItem);
+        searchMenu.add(saveMenuItem);
     }
 
-    private void initNextMatchItem(JMenu menu) {
+    private void initNextMatchItem() {
         JMenuItem saveMenuItem = new JMenuItem("Next Match");
         saveMenuItem.setName("MenuNextMatch");
         saveMenuItem.addActionListener(actionEvent -> {
-            searchNext();
+            incrementMatchAndMove();
         });
-        menu.add(saveMenuItem);
+        searchMenu.add(saveMenuItem);
     }
 
-    private void initUseRegularExpressionsItem(JMenu menu) {
+    private void initUseRegularExpressionsItem() {
         JMenuItem saveMenuItem = new JMenuItem("Use Regular Expressions");
         saveMenuItem.setName("MenuUseRegExp");
         saveMenuItem.addActionListener(actionEvent -> {
             regex = !regex;
         });
-        menu.add(saveMenuItem);
+        searchMenu.add(saveMenuItem);
     }
 
-    //searches for next and resets caret position if reaches end of the file
-    private void searchNext() {
-        editorText = editorArea.getText();
-        searchText = searchField.getText();
+    private void search() {
+        new Thread(() -> {
+            matchPosition = 0;
+            matchStartIndices = new ArrayList<>();
+            matchEndIndices = new ArrayList<>();
 
-        if (regex) {
-            searchWithRegex(true);
-        }else {
-            index = editorText.indexOf(searchText, caretPosition);
-
-            if (index == -1) {
-                caretPosition = 0;
-                index = editorText.indexOf(searchText, caretPosition);
+            Pattern pattern = Pattern.compile(String.format("(%s)", searchField.getText()));
+            Matcher matcher = pattern.matcher(editorArea.getText());
+            while (matcher.find()) {
+                matchStartIndices.add(matcher.start());
+                matchEndIndices.add(matcher.end());
             }
-            setCaretPositionAndSelectText(index, searchText);
-        }
+
+            moveMatch();
+        }).start();
     }
 
-    //searches for next and resets caret position if reaches end of the file
-    private void searchPrevious() {
-        editorText = editorArea.getText();
-        searchText = searchField.getText();
-
-        if (regex) {
-            searchWithRegex(false);
-        }else {
-            index = editorText.lastIndexOf(searchText, caretPosition - searchText.length() - 1);
-
-            if (index == -1) {
-                caretPosition = editorText.length() + 1;
-                index = editorText.lastIndexOf(searchText, caretPosition - searchText.length() - 1);
-            }
-            setCaretPositionAndSelectText(index, searchText);
+    private void decrementMatchAndMove() {
+        if (matchPosition - 1 < 0) {
+            matchPosition = matchStartIndices.size() - 1;
+        } else {
+            matchPosition--;
         }
+        moveMatch();
     }
 
-    //searches for parts compatible with regex
-    private void searchWithRegex(boolean isNext) {
-        editorText = editorArea.getText();
-        searchText = searchField.getText();
-
-        Pattern pattern = Pattern.compile(searchText);
-        Matcher matcher = pattern.matcher(editorText);
-        index = indexOfRegex(Pattern.compile(searchText), editorText, caretPosition, isNext);
-
-        if(!matcher.find()){
-            caretPosition = 0;
-            index = indexOfRegex(Pattern.compile(searchText), editorText, caretPosition, isNext);
+    private void incrementMatchAndMove() {
+        if (matchPosition + 1 > matchStartIndices.size() - 1) {
+            matchPosition = 0;
+        } else {
+            matchPosition++;
         }
-
-        caretPosition = index + matcher.end();
-        editorArea.setCaretPosition(caretPosition);
-        editorArea.select(index, caretPosition);
-        editorArea.grabFocus();
+        moveMatch();
     }
 
-    //return index of regex
-    private int indexOfRegex(Pattern pattern, String editorText, int caretPosition, boolean isNext) {
-        editorText = editorArea.getText();
-        searchText = searchField.getText();
-
-        if (isNext) {
-            Matcher matcher = pattern.matcher(editorText);
-            return matcher.find(caretPosition) ? matcher.start() : -1;
-        }else {
-            Matcher matcher = pattern.matcher(editorText);
-            String match = matcher.group(0);
-            index = editorText.lastIndexOf(match, caretPosition - match.length() - 1);
-
-            if (index == -1) {
-                caretPosition = editorText.length() + 1;
-                index = editorText.lastIndexOf(match, caretPosition - match.length() - 1);
-            }
-            return index;
-        }
-    }
-
-    private void setCaretPositionAndSelectText(int index, String searchText) {
-        caretPosition = index + searchText.length();
-        editorArea.setCaretPosition(caretPosition);
-        editorArea.select(index, caretPosition);
+    private void moveMatch() {
+        editorArea.setCaretPosition(matchEndIndices.get(matchPosition));
+        editorArea.select(matchStartIndices.get(matchPosition), matchEndIndices.get(matchPosition));
         editorArea.grabFocus();
     }
 
