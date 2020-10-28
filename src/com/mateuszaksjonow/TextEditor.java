@@ -148,18 +148,22 @@ public class TextEditor extends JFrame {
 
         if (jfc.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
             if (jfc.getSelectedFile().isFile()) {
-                try {
-                    File file = jfc.getSelectedFile();
-                    BufferedReader br = new BufferedReader(new FileReader(file));
-                    editorArea.read(br, null);
-                    editorArea.requestFocus();
-                    br.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                saveFile(jfc);
             }
         }
         add(jfc, BorderLayout.CENTER);
+    }
+
+    private void saveFile(JFileChooser jfc) {
+        try {
+            File file = jfc.getSelectedFile();
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            editorArea.read(br, null);
+            editorArea.requestFocus();
+            br.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -171,15 +175,18 @@ public class TextEditor extends JFrame {
         jfc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 
         if (jfc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-            try (FileWriter fw = new FileWriter(jfc.getSelectedFile())) {
-                fw.write(editorArea.getText());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            openFile(jfc);
         }
         add(jfc, BorderLayout.CENTER);
     }
 
+    private void openFile(JFileChooser jfc) {
+        try (FileWriter fw = new FileWriter(jfc.getSelectedFile())) {
+            fw.write(editorArea.getText());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     private void initTextAreaAndScrollPane() {
         editorArea.setName("TextArea");
@@ -283,15 +290,24 @@ public class TextEditor extends JFrame {
             matchStartIndices = new ArrayList<>();
             matchEndIndices = new ArrayList<>();
 
-            Pattern pattern = Pattern.compile(String.format("(%s)", searchField.getText()));
-            Matcher matcher = pattern.matcher(editorArea.getText());
-            while (matcher.find()) {
-                matchStartIndices.add(matcher.start());
-                matchEndIndices.add(matcher.end());
+            Pattern pattern;
+            if (regex) {
+                pattern = Pattern.compile(String.format("(%s)", searchField.getText()));
+            } else {
+                pattern = Pattern.compile(searchField.getText());
             }
+            searchMatcher(pattern);
 
             moveMatch();
         }).start();
+    }
+
+    private void searchMatcher (Pattern pattern) {
+        Matcher matcher = pattern.matcher(editorArea.getText());
+        while (matcher.find()) {
+            matchStartIndices.add(matcher.start());
+            matchEndIndices.add(matcher.end());
+        }
     }
 
     private void decrementMatchAndMove() {
